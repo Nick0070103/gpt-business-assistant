@@ -1,24 +1,19 @@
-# prompts.py
 import openai
 
-def chat_with_gpt(user_text, api_key, db):
+def chat_with_gpt(user_text, api_key, db=None):
     openai.api_key = api_key
-    context = ""
-    for tid, text, due, status in db.get_all_tasks():
-        context += f"\n- {text} (до {due}, статус: {status})"
 
-    messages = [
-        {"role": "system", "content": (
-            "Ты умный, дружелюбный, но критичный бизнес-ассистент."
-            " Помогаешь ставить и отслеживать задачи, анализируешь поступки и предлагаешь улучшения."
-            " Если решение сомнительное — спорь, но объясняй почему."
-            " Вот список текущих задач:\n" + context)
-        },
-        {"role": "user", "content": user_text}
-    ]
+    prompt = f"Ты умный и дружелюбный ассистент. Пользователь пишет: {user_text}"
 
-    response = openai.ChatCompletion.create(
-        model="gpt-4",
-        messages=messages
-    )
-    return response.choices[0].message.content
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4",  # Можно заменить на gpt-3.5-turbo
+            messages=[
+                {"role": "system", "content": "Ты ассистент, который помогает, спорит и направляет."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7
+        )
+        return response.choices[0].message['content']
+    except Exception as e:
+        return "🤖 Не смог придумать ответ. Попробуй ещё раз."

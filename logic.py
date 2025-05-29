@@ -16,8 +16,11 @@ def parse_task_message(text):
 def task_summary(tasks, monday_mode=False):
     if not tasks:
         return "Нет текущих задач."
-    summary = "📝 Текущие задачи:
-"
+    summary = """📝 Текущие задачи:
+              - Задача 1
+              - Задача 2
+              """
+
     now = datetime.now()
     for tid, text, due, status in tasks:
         due_dt = datetime.strptime(due, "%Y-%m-%d")
@@ -25,6 +28,5 @@ def task_summary(tasks, monday_mode=False):
         if monday_mode and not overdue:
             continue
         status_note = "🔴 Просрочена" if overdue else "🟢 В работе"
-        summary += f"- {text} (до {due}) [{status_note}]
-"
+        summary += f"- {text} (до {due}) [{status_note}]"
     return summary

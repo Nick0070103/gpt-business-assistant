@@ -1,61 +1,77 @@
 import logging
 import os
-import openai
 from datetime import datetime, timedelta
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from database import TaskDB
+from logic import parse_task_message, task_summary
+from prompts import chat_with_gpt
 
-# --- НАСТРОЙКИ ---
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-openai.api_key = OPENAI_API_KEY
 
+REMINDER_CHAT_ID = os.getenv("REMINDER_CHAT_ID") or ""
+
+if not TELEGRAM_TOKEN:
+    raise ValueError("TELEGRAM_TOKEN is not set")
+if not OPENAI_API_KEY:
+    raise ValueError("OPENAI_API_KEY is not set")
+
+# --- Инициализация ---
+db = TaskDB("tasks.db")
+scheduler = AsyncIOScheduler()
 logging.basicConfig(level=logging.INFO)
-tasks = []  # Список задач в памяти
 
 # --- Команды ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Привет! Я твой ИИ-компаньон. Просто пиши свои задачи или вопросы, и я помогу.")
+    await update.message.reply_text("Привет! Я твой ИИ-компаньон. Просто пиши задачи, спрашивай, спорь — я здесь, чтобы помогать.")
 
-async def svodka(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if tasks:
-        message = "\n".join([f"🔹 {t['text']} (до {t['due']})" for t in tasks])
-    else:
-        message = "Пока что задач нет."
-    await update.message.reply_text("📅 Текущие задачи:\n" + message)
+async def list_tasks(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    tasks = db.get_all_tasks()
+    summary = task_summary(tasks)
+    await update.message.reply_text(summary or "Задач пока нет 🚀")
 
-# --- Ответ на обычное сообщение ---
+async def clear_tasks(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    db.clear_tasks()
+    await update.message.reply_text("🧹 Память очищена. Начинаем с чистого листа.")
+
+# --- Напоминания ---
+async def monday_reminder():
+    tasks = db.get_all_tasks()
+    summary = task_summary(tasks, monday_mode=True)
+    if summary and REMINDER_CHAT_ID:
+        await app.bot.send_message(chat_id=REMINDER_CHAT_ID, text=summary)
+
+# --- Сообщения ---
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_text = update.message.text
+    chat_id = update.effective_chat.id
 
-    # Если есть слово "до" — попробуем сохранить как задачу
-    if "до" in user_text:
-        parts = user_text.split("до")
-        task_text = parts[0].strip()
-        try:
-            due_date = parts[1].strip()
-            tasks.append({"text": task_text, "due": due_date})
-            await update.message.reply_text(f"✅ Задача добавлена: {task_text} (до {due_date})")
-            return
-        except:
-            pass
-
-    # Отправка в GPT-4
-    response = openai.ChatCompletion.create(
-        model="gpt-4",
-        messages=[
-            {"role": "system", "content": "Ты умный, вежливый, критически мыслящий бизнес-ассистент, помогаешь с управлением проектами, не забываешь задачи, общаешься тепло и по делу."},
-            {"role": "user", "content": user_text}
-        ]
-    )
-    reply = response.choices[0].message.content
-    await update.message.reply_text(reply)
+    try:
+        # Попытка распознать как задачу
+        task = parse_task_message(user_text)
+        if task:
+            db.add_task(**task)
+            await update.message.reply_text(f"✅ Задача добавлена: {task['text']} (до {task['due_date']})")
+        else:
+            # GPT-ассистент отвечает на любое сообщение
+            reply = chat_with_gpt(user_text, OPENAI_API_KEY, db)
+            await update.message.reply_text(reply)
+    except Exception as e:
+        logging.exception("Ошибка обработки сообщения")
+        await update.message.reply_text("Произошла ошибка. Попробуй ещё раз или задай вопрос иначе.")
 
 # --- Запуск ---
 app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+
 app.add_handler(CommandHandler("start", start))
-app.add_handler(CommandHandler("svodka", svodka))
+app.add_handler(CommandHandler("tasks", list_tasks))
+app.add_handler(CommandHandler("clear", clear_tasks))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+
+scheduler.add_job(monday_reminder, 'cron', day_of_week='mon', hour=9)
+scheduler.start()
 
 print("Бот запущен...")
 app.run_polling()
