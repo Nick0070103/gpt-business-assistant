@@ -7,12 +7,11 @@ def chat_with_gpt(user_text, api_key, db=None):
 
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-4",  # Можно заменить на gpt-3.5-turbo
+            model="gpt-4",
             messages=[
-                {"role": "system", "content": "Ты ассистент, который помогает, спорит и направляет."},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.7
+            temperature=0.7,
         )
         return response.choices[0].message['content']
     except Exception as e:
