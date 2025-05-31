@@ -67,8 +67,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Запуск
 app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
 app.add_handler(CommandHandler("start", start))
-app.add_handler(CommandHandler("задачи", list_tasks))
-app.add_handler(CommandHandler("очистить", clear_tasks))
+app.add_handler(CommandHandler("tasks", list_tasks))
+app.add_handler(CommandHandler("clear", clear_tasks))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
 scheduler.add_job(monday_reminder, 'cron', day_of_week='mon', hour=9)
