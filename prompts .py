@@ -18,3 +18,4 @@ def chat_with_gpt(prompt: str, openai_key: str, db=None) -> str:
     except Exception as e:
         print(f"GPT error: {e}")
         return "🧠 Не смог придумать ответ. Попробуй ещё раз."
+# файл обновлён вручную
