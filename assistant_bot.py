@@ -13,9 +13,9 @@ from logic import parse_task_message, task_summary
 from prompts import chat_with_gpt
 
 # --- Переменные ---
-TOKEN = "7782223199:AAE3WM-ubiVMswL4tlqgN0kdqeORqJdaskk"
-OPENAI_API_KEY = "sk-proj-iPQwQXlH9sM2SXqD8nZweu0dG1zG6bon57v4XVVZjrISaGqdBl-VPdAtZukMw12NRC-5wiJYt2I3BlkfYJZnUC2_WLP3pyidvVeeJ_1ImStcg4_OX2ENhHudU0N8j7KYkwsFMf4-DQoKEeXR12W-Y9gYAA"
-REMINDER_CHAT_ID = "6639197037"
+TOKEN = os.environ.get("TELEGRAM_TOKEN")
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+REMINDER_CHAT_ID = os.environ.get("REMINDER_CHAT_ID")
 
 # --- Инициализация ---
 app = ApplicationBuilder().token(TOKEN).build()
