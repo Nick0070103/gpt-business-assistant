@@ -1,3 +1,4 @@
+
 import openai
 
 def chat_with_gpt(prompt: str, openai_key: str, db=None) -> str:
@@ -6,7 +7,7 @@ def chat_with_gpt(prompt: str, openai_key: str, db=None) -> str:
         response = openai.ChatCompletion.create(
             model="gpt-4",
             messages=[
-                {"role": "system", "content": "Ты внимательный и полезный ассистент. Отвечай понятно, по делу и доброжелательно."},
+                {"role": "system", "content": "Ты внимательный и полезный ассистент. Отвечай понятно, сжато и дружелюбно."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.7,
@@ -15,4 +16,4 @@ def chat_with_gpt(prompt: str, openai_key: str, db=None) -> str:
         return response.choices[0].message.content.strip()
     except Exception as e:
         print(f"GPT error: {e}")
-        return "🤖 Не смог придумать ответ. Попробуй ещё раз."
+        return None
