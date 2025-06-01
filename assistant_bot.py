@@ -1,5 +1,7 @@
 
+# assistant_bot.py
 import logging
+import os
 from telegram import Update
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler,
@@ -9,30 +11,29 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from database import TaskDB
 from logic import parse_task_message, task_summary
 from prompts import chat_with_gpt
-import os
+
+# --- Переменные ---
+TOKEN = "7782223199:AAE3WM-ubiVMswL4tlqgN0kdqeORqJdaskk"
+OPENAI_API_KEY = "sk-proj-iPQwQXlH9sM2SXqD8nZweu0dG1zG6bon57v4XVVZjrISaGqdBl-VPdAtZukMw12NRC-5wiJYt2I3BlkfYJZnUC2_WLP3pyidvVeeJ_1ImStcg4_OX2ENhHudU0N8j7KYkwsFMf4-DQoKEeXR12W-Y9gYAA"
+REMINDER_CHAT_ID = "6639197037"
 
 # --- Инициализация ---
-TOKEN = os.environ.get("TELEGRAM_TOKEN")
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
-REMINDER_CHAT_ID = os.environ.get("REMINDER_CHAT_ID")
-
 app = ApplicationBuilder().token(TOKEN).build()
 scheduler = AsyncIOScheduler()
-db = TaskDB()
+db = TaskDB("db.sqlite")
 
 # --- Команды ---
 async def list_tasks(update: Update, context: ContextTypes.DEFAULT_TYPE):
     summary = task_summary(db.get_tasks())
-    await update.message.reply_text(summary or "Задач пока нет 💤")
+    await update.message.reply_text(summary or "Задач пока нет 🗒️")
 
 async def clear_tasks(update: Update, context: ContextTypes.DEFAULT_TYPE):
     db.clear_tasks()
-    await update.message.reply_text("🧽 Память очищена. Начинаем с чистого листа.")
+    await update.message.reply_text("🧹 Память очищена. Начинаем с чистого листа.")
 
-# --- Напоминалка ---
+# --- Напоминания ---
 async def monday_reminder():
-    text = task_summary(db.get_tasks()) or "Задач нет."
-    await app.bot.send_message(chat_id=REMINDER_CHAT_ID, text=f"📌 Напоминание на понедельник:\n\n{text}")
+    await app.bot.send_message(chat_id=REMINDER_CHAT_ID, text="🗓️ Доброе утро! Вот список задач на неделю:")
 
 # --- Сообщения ---
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
